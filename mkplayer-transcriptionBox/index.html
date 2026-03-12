@@ -1,0 +1,209 @@
+
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8" />
+  <title>Transcription demo MkPlayer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.jsdelivr.net/npm/@mediakind/mkplayer@latest/mkplayer.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mediakind/mkplayer@latest/mkplayer-ui.css" />
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+    }
+    #video-container,
+    #controls,
+    #transcripcio {
+      max-width: 800px;
+      margin: auto;
+    }
+    #controls {
+      margin: 10px auto;
+      text-align: center;
+    }
+    #transcripcio {
+      margin-top: 20px;
+      font-size: 16px;
+      color: #333;
+      background: #f9f9f9;
+      padding: 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      font-family: monospace;
+      white-space: pre-wrap;
+      line-height: 1.4em;
+      max-height: calc(1.4em * 10);
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body>
+  <h2>Transcription demo MkPlayer</h2>
+
+  <div id="video-container"></div>
+
+  <div id="controls">
+    <button id="toggle-transcripcio" style="margin-bottom: 10px;">
+      Desactivar transcripció
+    </button>
+    <label for="idioma-subtitles">Language: </label>
+    <select id="idioma-subtitles" style="padding: 4px; font-size: 14px;"></select>
+  </div>
+
+  <div id="transcripcio"></div>
+
+  <script>
+    function getPlaybackParams() {
+      const urlParams = new URLSearchParams(window.location.search);
+      return {
+        dash: urlParams.get("dash"),
+        hls: urlParams.get("hls"),
+        subtitles: urlParams.get("subtitles")
+      };
+    }
+
+    const videoContainer = document.getElementById("video-container");
+    const selector = document.getElementById("idioma-subtitles");
+    const transcripcio = document.getElementById("transcripcio");
+    const botoToggle = document.getElementById("toggle-transcripcio");
+
+    const player = new mkplayer.MKPlayer(videoContainer, {
+      key: "YOUR_MKPLAYER_KEY",
+      ui: true,
+      playback: {
+        muted: true,
+        autoplay: true,
+        audioLanguage: "en-US",
+        subtitleLanguage: "en-US",
+        isForcedSubtitle: true
+      },
+      events: {
+        [mkplayer.MKPlayerEvent.Error]: (event) => {
+          console.log("Error: ", JSON.stringify(event));
+        }
+      }
+    });
+
+    const params = getPlaybackParams();
+    const sourceConfig = {
+      title: "Video loaded from the URL",
+      description: "With selectable subtitles"
+    };
+    if (params.dash) sourceConfig.dash = params.dash;
+    if (params.hls) sourceConfig.hls = params.hls;
+    if (params.subtitles) {
+      sourceConfig.MKSubtitleTrack = [
+        {
+          url: params.subtitles,
+          label: "Subtitles",
+          lang: "ca",
+          kind: "subtitles",
+          mode: "showing"
+        }
+      ];
+    }
+
+    let primeraPista = null;
+    let transcripcioActiva = true;
+    let lastText = '';
+
+    player.load(sourceConfig).then(() => {
+      const pistes = player.subtitles.list();
+      if (pistes.length > 0) {
+        primeraPista = pistes[0];
+
+        pistes.forEach(p => {
+          const opcio = document.createElement('option');
+          opcio.value = p.id;
+          opcio.textContent = p.label || p.language || p.id;
+          selector.appendChild(opcio);
+        });
+
+        selector.value = primeraPista.id;
+
+        // Active only the first view
+        pistes.forEach(p => {
+          if (p.id === primeraPista.id) {
+            player.subtitles.enable(p.id);
+          } else {
+            player.subtitles.disable(p.id);
+          }
+        });
+      }
+    }).catch((error) => {
+      console.error("Error loading the video:", error);
+    });
+
+    selector.addEventListener('change', (e) => {
+      const id = e.target.value;
+      player.subtitles.list().forEach(p => {
+        if (p.id === id) {
+          player.subtitles.enable(p.id);
+        } else {
+          player.subtitles.disable(p.id);
+        }
+      });
+    });
+
+    player.on('subtitleadded', () => {
+      const pistes = player.subtitles.list();
+      if (pistes.length > 0 && primeraPista) {
+        pistes.forEach(p => {
+          if (p.id === primeraPista.id) {
+            player.subtitles.enable(p.id);
+          } else {
+            player.subtitles.disable(p.id);
+          }
+        });
+
+        setTimeout(() => {
+          const video = document.querySelector('video');
+          const tracks = video?.textTracks || [];
+          for (let i = 0; i < tracks.length; i++) {
+            tracks[i].mode = 'hidden';
+          }
+        }, 500);
+      }
+    });
+
+    botoToggle.addEventListener('click', () => {
+      transcripcioActiva = !transcripcioActiva;
+
+      if (!transcripcioActiva) {
+        player.subtitles.list().forEach(p => player.subtitles.disable(p.id));
+      } else {
+        const activa = selector.value;
+        player.subtitles.list().forEach(p => {
+          if (p.id === activa) {
+            player.subtitles.enable(p.id);
+          }
+        });
+      }
+
+      botoToggle.textContent = transcripcioActiva
+        ? 'Disable Transcription'
+        : 'Enable Transcription';
+    });
+
+    function formatTime(seconds) {
+      if (typeof seconds !== 'number' || isNaN(seconds)) return '--:--';
+      const min = Math.floor(seconds / 60);
+      const sec = Math.floor(seconds % 60);
+      return `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+    }
+
+    player.on('cueenter', (event) => {
+      if (!transcripcioActiva) return;
+      if (!event?.text || event.text === lastText) return;
+      lastText = event.text;
+
+      const timeFormatted = formatTime(event.start);
+      const line = document.createElement('div');
+      line.textContent = `[${timeFormatted}] ${event.text}`;
+      transcripcio.appendChild(line);
+      transcripcio.scrollTop = transcripcio.scrollHeight;
+    });
+  </script>
+</body>
+</html>
