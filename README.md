@@ -30,9 +30,10 @@ These scripts are intended **strictly for educational and experimental purposes*
 
 The repository includes examples such as:
 *   **`getOrg`**: A Python script to retrieve the organization name associated with a valid API token.
-*   **`createLiveEvent`**: Automation for provisioning a Live Event along with its corresponding DVR asset.
+*   **`createLiveEvent`**: A Python script for provisioning a Live Event along with its corresponding DVR asset.
 *   **`Mkplayer-transcriptionBox`**: An HTML/JavaScript implementation using the MKPlayer API to create a dynamic transcription box below the video player.
-*   **`bulkRemoveAssets`**: Scripts for batch management of media resources.
+*   **`bulkRemoveAssets`**: A Python script for batch removing assets from a user with a basic interactivity
+*   **`bulkChangeRetainPolicy`**: Python script to batch update the `containerDeletionPolicy` of multiple assets, ensuring storage preservation or cleanup.
 
 ---
 *Created to experiment with the future of cloud video.*
