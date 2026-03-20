@@ -1,3 +1,18 @@
+"""MK.IO Live Streaming Setup Script
+---------------------------------
+This script automates the creation of a complete live streaming pipeline using the MK.IO Media API.
+The workflow follows the standard pattern for provisioning resources for a live event with DVR capabilities [1, 2]:
+
+1. Create a Live Event: Provisions a live ingest point supporting the SRT protocol and 
+   Premium 1080p cloud encoding.
+2. Create a DVR Asset: Establishes a link to the cloud storage container where the 
+   encoded live stream will be recorded.
+3. Create a Live Output: Associates the Live Event with the Asset to enable a 30-minute 
+   rolling buffer (DVR) for time-shifted playback.
+4. Create a Streaming Locator: Publishes the recorded content for delivery, making it 
+   accessible via DASH/HLS manifests through an active Streaming Endpoint.
+"""
+
 import requests
 
 token = "YOUR_TOKEN"
@@ -50,7 +65,6 @@ payload = { "properties": {
 
 response = requests.put(url, json=payload, headers=headers)
 
-#print(response.text)
 print("Creating the DVR asset: assetDVR-" + name_live)
 print(response)
 
@@ -68,7 +82,6 @@ payload = { "properties": {
 
 response = requests.put(url, json=payload, headers=headers)
 
-#print(response.text)
 print("Associating the DVR asset to the Live Event")
 print(response)
 
@@ -85,6 +98,5 @@ payload = { "properties": {
 
 response = requests.put(url, json=payload, headers=headers)
 
-#print(response.text)
 print("Creating the locator: " + name_live + "-locator")
 print(response)

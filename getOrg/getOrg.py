@@ -1,3 +1,18 @@
+"""
+MK.IO Organization Discovery and Verification Script
+----------------------------------------------------
+This script interacts with the MK.IO Management API to programmatically identify 
+the organizational context associated with a provided API token. 
+
+The workflow performs the following operations:
+1. User Profile Retrieval: Queries the authenticated user's profile to extract 
+   session data and identity information
+2. Active Organization Extraction: Uses JSONPath to resolve the specific 
+   'activeOrganizationId' currently tied to the user's token
+3. Metadata Resolution: Performs a targeted lookup to retrieve the human-readable 
+   name of the organization, confirming the token's scope and permissions
+"""
+
 import requests
 import json
 import jsonpath_ng as jp
