@@ -4,7 +4,7 @@ This repository contains **small code snippets and example scripts** designed to
 
 ## What is MK.IO?
 
-**MK.IO** is a powerful cloud-based platform developed by **MediaKind** for building modern video applications and managing streaming media services with IA interaction. It provides comprehensive management for video, audio, and metadata (such as subtitles), converting them into various formats for distribution to customers, partners, or cloud storage. 
+**MK.IO** is a powerful cloud-based platform developed by **MediaKind** for building modern video applications and managing streaming media services with AI interaction. It provides comprehensive management for video, audio, and metadata (such as subtitles), converting them into various formats for distribution to customers, partners, or cloud storage. 
 
 *   **Official Website:** [mk.io](https://mk.io)
 *   **Technical Documentation:** [docs.mediakind.com/mkio](https://docs.mediakind.com/mkio)
