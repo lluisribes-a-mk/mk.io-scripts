@@ -43,7 +43,7 @@ const sources = {
 
 ## How to Use
 
-Navigation: In Multiview mode, move your mouse or use the Left/Right arrow keys. A blue glow will appear around the focused camera window based on the layout coordinates.
-Selection: Click on a camera or press ENTER to switch to that specific camera in full screen.
-Return to Mosaic: While viewing a single camera, click the return hint or press ENTER to return to the Multiview mosaic.
-UI Visibility: Stop all interactions for 3 seconds to hide the interaction overlays automatically.
+1. **Navigation**: In Multiview mode, move your mouse or use the Left/Right arrow keys. A blue glow will appear around the focused camera window based on the layout coordinates.
+2. **Selection**: Click on a camera or press ENTER to switch to that specific camera in full screen.
+3. **Return to Mosaic**: While viewing a single camera, click the return hint or press ENTER to return to the Multiview mosaic.
+4. **UI Visibility**: Stop all interactions for 3 seconds to hide the interaction overlays automatically.
