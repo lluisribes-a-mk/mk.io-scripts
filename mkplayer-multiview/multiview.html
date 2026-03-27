@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!--
+    MK.IO Interactive Multiview Experience
+    --------------------------------------
+    This implementation provides a seamless, low-bandwidth multi-camera viewing 
+    experience powered by the MediaKind Player (MKPlayer) and MK.IO SaaS platform.
+
+    Key Features:
+    1. Server-Side Composition: Initially loads a composited 2-up mosaic 
+       rendered in the cloud (MK.IO).
+    2. Dynamic Source Switching: Uses 'player.load()' logic to switch between DASH/CMAF 
+       manifests without refreshing the page, ensuring only ONE active stream at a time.
+    3. Interactive Hotspots: Invisible interaction layer allows users to click directly 
+       on a camera window within the mosaic to expand it to full screen.
+    4. Visual Feedback: Synchronized "Blue Glow" frames highlight the selected camera.
+    5. Navigation: Supports mouse interaction and Keyboard navigation (Arrow keys + Enter).
+    6. Activity Management: Implements an inactivity timer that automatically hides 
+       the UI overlays after 3 seconds of idle time for an unobstructed viewing experience.
+-->
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MK.IO Interactive Multiview - Persistent UI</title>
+
+    <!-- MediaKind Player SDK and UI CSS from jsdelivr -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mediakind/mkplayer@latest/mkplayer-ui.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@mediakind/mkplayer@latest/mkplayer.js"></script>
+
+    <style>
+        body { margin: 0; background: #000; color: white; font-family: 'Segoe UI', sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
+        
+        #player-wrapper { 
+            position: relative; width: 90%; max-width: 1200px; aspect-ratio: 16/9; 
+            background: #000; overflow: visible; 
+        }
+
+        #player { width: 100%; height: 100%; z-index: 1; }
+
+        /* Interaction layer for Multiview selection */
+        #interaction-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; z-index: 100; pointer-events: none;
+        }
+
+        .click-zone { flex: 1; height: 100%; pointer-events: auto; cursor: pointer; }
+
+        /* Glow Frames for individual camera windows */
+        .glow-frame {
+            position: absolute; pointer-events: none;
+            border: 3px solid transparent; border-radius: 8px;
+            transition: all 0.3s ease; opacity: 0; 
+            box-sizing: border-box; z-index: 150;
+            width: 46.88%; height: 46.86%;
+            top: 26.5%; 
+        }
+
+        #glow-1 { left: 2.1%; }  
+        #glow-2 { right: 2.1%; } 
+
+        .glow-active {
+            opacity: 1; border-color: #00a2ff;
+            box-shadow: 0 0 30px #00a2ff, inset 0 0 20px #00a2ff;
+        }
+
+        /* Logic to hide UI during Multiview inactivity */
+        .ui-hidden .glow-frame { opacity: 0 !important; }
+        .ui-hidden .click-zone { cursor: none; }
+
+        /* Return Hint - Styled as a clickable button/message */
+        #return-hint {
+            position: absolute; bottom: 30px; left: 30px; z-index: 200;
+            padding: 12px 24px; background: rgba(0,0,0,0.85); border-radius: 6px;
+            display: none; font-size: 14px; border-left: 5px solid #00a2ff;
+            text-transform: uppercase; cursor: pointer; pointer-events: auto;
+            transition: transform 0.2s, background 0.2s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        #return-hint:hover { background: #111; transform: scale(1.05); }
+
+        /* Persistent visibility: When in single view, the hint stays visible even if ui-hidden is set */
+        .viewing-single #return-hint { 
+            display: block !important; 
+            opacity: 1 !important; 
+        }
+
+        /* In single view, the whole interaction layer is disabled for specific zones */
+        .viewing-single .click-zone { display: none; }
+    </style>
+</head>
+<body class="viewing-multiview">
+
+    <div id="player-wrapper">
+        <!-- Visual frames for the blue glow -->
+        <div id="glow-1" class="glow-frame"></div>
+        <div id="glow-2" class="glow-frame"></div>
+
+        <!-- Hidden layer for detection -->
+        <div id="interaction-layer">
+            <div id="zone-1" class="click-zone" onmousemove="focusCam(0)"></div>
+            <div id="zone-2" class="click-zone" onmousemove="focusCam(1)"></div>
+        </div>
+
+        <!-- The persistent clickable return message -->
+        <div id="return-hint" onclick="switchView('multiview')">
+            Click here or press <strong>ENTER</strong> to return to Multiview
+        </div>
+
+        <div id="player"></div>
+    </div>
+
+    <script>
+        // Official manifest URLs from your MK.IO region [Query]
+        const sources = {
+            multiview: { dash: "HERE_YOUR_MULTIVIEW_MANIFEST_URL" },
+            cam1: { dash: "HERE_YOUR_CAM1_MANIFEST_URL" },
+            cam2: { dash: "HERE_YOUR_CAM2_MANIFEST_URL" }
+        };
+
+        let player, inactivityTimer;
+        let currentState = 'multiview';
+        let focusedIndex = 0; 
+
+        const playerConfig = {
+            key: "HERE_YOUR_MKPLAYER_KEY",
+            ui: true,
+            playback: { autoplay: true, muted: true }
+        };
+
+        async function init() {
+            try {
+                const PlayerConstructor = mkplayer.MKPlayer || mkplayer.Player || mkplayer;
+                player = new PlayerConstructor(document.getElementById('player'), playerConfig);
+                await player.load(sources.multiview);
+                resetTimer();
+                updateUI();
+            } catch (e) { console.error("Initialization error:", e); }
+        }
+
+        /**
+         * Sets focus on a camera and refreshes visual state
+         */
+        function focusCam(index) {
+            if (currentState !== 'multiview') return;
+            focusedIndex = index;
+            updateUI();
+            resetTimer();
+        }
+
+        /**
+         * 3-second auto-hide logic for Multiview elements
+         */
+        function resetTimer() {
+            document.getElementById('player-wrapper').classList.remove('ui-hidden');
+            clearTimeout(inactivityTimer);
+            inactivityTimer = setTimeout(() => {
+                document.getElementById('player-wrapper').classList.add('ui-hidden');
+            }, 3000);
+        }
+
+        /**
+         * Switches manifest efficiently.
+         * Bandwidth is optimized as only ONE stream is pulled at a time [Query].
+         */
+        function switchView(target) {
+            if (currentState === target) return;
+            console.log("Switching stream to:", target);
+            currentState = target;
+            
+            // Toggle body class for layout-specific CSS
+            document.body.className = (target === 'multiview') ? 'viewing-multiview' : 'viewing-single';
+            
+            player.load(sources[target]).catch(console.error);
+            updateUI();
+        }
+
+        /**
+         * Syncs blue frames with current focus
+         */
+        function updateUI() {
+            const g1 = document.getElementById('glow-1');
+            const g2 = document.getElementById('glow-2');
+            if (currentState === 'multiview') {
+                g1.classList.toggle('glow-active', focusedIndex === 0);
+                g2.classList.toggle('glow-active', focusedIndex === 1);
+            } else {
+                g1.classList.remove('glow-active');
+                g2.classList.remove('glow-active');
+            }
+        }
+
+        // --- Interaction Listeners ---
+
+        document.getElementById('zone-1').onclick = (e) => switchView('cam1');
+        document.getElementById('zone-2').onclick = (e) => switchView('cam2');
+
+        window.addEventListener('keydown', (e) => {
+            resetTimer();
+            if (currentState === 'multiview') {
+                if (e.key === 'ArrowRight') { focusedIndex = 1; updateUI(); }
+                else if (e.key === 'ArrowLeft') { focusedIndex = 0; updateUI(); }
+                else if (e.key === 'Enter') switchView(focusedIndex === 0 ? 'cam1' : 'cam2');
+            } else if (e.key === 'Enter') {
+                // Enter returns to Multiview from single camera mode [Query]
+                switchView('multiview');
+            }
+        });
+
+        window.onload = init;
+    </script>
+</body>
+</html>
