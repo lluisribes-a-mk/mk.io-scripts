@@ -28,18 +28,22 @@ const playerConfig = {
     ui: true,
     playback: { autoplay: true, muted: true }
 };
-2. Manifest URLs
+```
+
+### 2. Manifest URLs
+
 Update the sources object with your specific MK.IO Streaming Endpoint paths:
+```javascript
 const sources = {
     multiview: { dash: " HERE_YOUR_MULTIVIEW_MANIFEST_URL " },
     cam1: { dash: "HERE_YOUR_CAM1_MANIFEST_URL " },
     cam2: { dash: "HERE_YOUR_CAM2_MANIFEST_URL" }
 };
+```
 
 ## How to Use
 
-Navigation: In Multiview mode, move your mouse or use the Left/Right arrow keys. A blue glow will appear around the focused camera window based on the layout coordinates
-.
+Navigation: In Multiview mode, move your mouse or use the Left/Right arrow keys. A blue glow will appear around the focused camera window based on the layout coordinates.
 Selection: Click on a camera or press ENTER to switch to that specific camera in full screen.
 Return to Mosaic: While viewing a single camera, click the return hint or press ENTER to return to the Multiview mosaic.
 UI Visibility: Stop all interactions for 3 seconds to hide the interaction overlays automatically.
