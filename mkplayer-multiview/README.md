@@ -47,3 +47,5 @@ const sources = {
 2. **Selection**: Click on a camera or press ENTER to switch to that specific camera in full screen.
 3. **Return to Mosaic**: While viewing a single camera, click the return hint or press ENTER to return to the Multiview mosaic.
 4. **UI Visibility**: Stop all interactions for 3 seconds to hide the interaction overlays automatically.
+
+![Screenshot](Multiview.jpg)
